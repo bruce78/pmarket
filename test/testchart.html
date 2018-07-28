@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="jquery-2.1.1.js"></script>
+    <script src="highcharts.js"></script>
+</head>
+<body>
+<div id="highcharts-graph"
+     style="position: relative; overflow: hidden; width: 1190px; height: 520px; text-align: left; line-height: normal; z-index: 0; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></div>
+<script>
+function label_format_crypto() {
+	val = format_crypto(this.value);
+	return val + " BTC"
+}
+function format_crypto(val) {
+    var result;
+    if (val >= 1000) {
+        result = toLocaleString(val, 2);
+    } else if (val >= 1) {
+        result = val.toFixed(2);
+    } else {
+        if (val > 0.01) {
+            result = val.toPrecision(4)
+        } else {
+            result = val.toFixed(8);
+        }
+    }
+    return result;
+}
+function tooltip_format_market_cap2() {
+    var val = 200;
+    var rate = '0.5';
+    rate = parseFloat(rate);
+    return '<span style="color:' + this.color + '">\u25CF</span> ' + this.series.name + ': <b>$' + val + '</b><br/><span style="color:rgba(0,0,0,0)">\u25CF</span> 市值: <b>￥' + format_market_cap(this.y / rate) + '</b><br/>'
+
+}
+function save_preferences(chartName, index, chart) {
+	var seriesVisible = [];
+	for (i = 0; i < chart.series.length; i++) {
+		if (i == index) {
+			seriesVisible[i] = !chart.series[i].visible
+		} else {
+			seriesVisible[i] = chart.series[i].visible
+		}
+	}
+	Cookies.set("highcharts_" + chartName, seriesVisible, {expires: 180})
+}
+
+function series_is_visible(chartName, index, defaultState) {
+	var preferences = Cookies.get("highcharts_" + chartName);
+	if (preferences === undefined) {
+		return defaultState
+	}
+	return preferences[index]
+}
+function Cook(){
+    this.set = function(){
+    }
+    this.get = function(){
+    }
+}
+var Cookies = new Cook();
+var url = 'http://127.0.0.1:5000/hisdata/bit/day';
+var xhr = new XMLHttpRequest();
+
+
+xhr.onreadystatechange = function() {
+    if (xhr.readyState == XMLHttpRequest.DONE) {
+        var json = JSON.parse(xhr.response);
+        initTable(json.data);
+    }
+}
+xhr.open('GET', url, true);
+xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+xhr.send(null);
+
+function initTable(seriesData){
+	Highcharts.setOptions({
+		global: {useUTC: false},
+		lang: {
+			downloadJPEG: "下载jpg",
+			downloadPDF: "下载pdf",
+			downloadPNG: "下载png",
+			downloadSVG: "下载svg",
+			loading: "",
+			months: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+			printChart: "打印图表",
+			shortMonths: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+			rangeSelectorFrom: "从",
+			rangeSelectorTo: "到",
+			rangeSelectorZoom: "缩放",
+			resetZoom: "恢复初始缩放等级",
+			resetZoomTitle: " 1:1缩放等级",
+			shortWeekdays: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
+			weekdays: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
+			numericSymbols: ["千", "百万", "十亿"],
+			thousandsSep: ","
+		}
+	});
+    $("#highcharts-graph").highcharts("StockChart", {
+		chart: {
+			type: "line",
+			zoomType: "null",
+			height: 520,
+			ignoreHiddenSeries: true
+		},
+		tooltip: {shared: true, hideDelay: 50, xDateFormat: "%A, %b %d %Y, %H:%M:%S"},
+		legend: {
+			enabled: true,
+			align: "center",
+			backgroundColor: "#FFFFFF",
+			borderColor: "black",
+			borderWidth: 0,
+			layout: "horizontal",
+			verticalAlign: "bottom",
+			y: 0,
+			shadow: false,
+			floating: false
+		},
+		navigator: {adaptToUpdatedData: false},
+		scrollbar: {liveRedraw: false},
+		subtitle: {text: ""},
+		rangeSelector: {
+			allButtonsEnabled: true,
+			buttons: [{type: "day", count: 1, text: "天"}, {type: "week", count: 1, text: "周"}, {
+				type: "month",
+				count: 1,
+				text: "1月"
+			}, {type: "month", count: 3, text: "3月"}, {type: "year", count: 1, text: "1年"}, {
+				type: "ytd",
+				count: 1,
+				text: "今年"
+			}, {type: "all", text: "所有"}],
+			selected: 6,
+			inputEnabled: true,
+			enabled: true
+		},
+		xAxis: [{
+			events: {
+				afterSetExtremes: function (e) {
+					if (e.dataMin != e.min || e.dataMax != e.max) {
+                        that = this;
+                        var min = Math.round(e.min);
+                        var max = Math.round(e.max);
+                        that.updateCharts(min, max)
+                    }
+				}
+			}, minRange: 24 * 3600 * 1000
+		}],
+		yAxis: [{
+			labels: {
+				formatter: function () {
+					return "$" + this.axis.defaultLabelFormatter.call(this)
+				}, align: "right", style: {color: "#7cb5ec"}
+			},
+			title: {text: "市值", style: {color: "#7cb5ec", "font-weight": "bold"}},
+			showEmpty: false,
+			height: "80%",
+			opposite: false,
+			floor: 0
+		}, {
+			labels: {style: {color: "#009933",}, align: "left", x: 15},
+			title: {text: "价格 (美元)", style: {color: "#009933", "font-weight": "bold"}},
+			showEmpty: false,
+			height: "80%",
+			opposite: true,
+			floor: 0
+		}, {
+			labels: {formatter: label_format_crypto, style: {color: "#f7931a",}, align: "left", x: 15},
+			title: {text: "价格 (BTC)", style: {color: "#f7931a", "font-weight": "bold"}},
+			showEmpty: false,
+			height: "80%",
+			opposite: true,
+			floor: 0
+		}, {
+			labels: {align: "right", style: {color: "#777",}},
+			title: {text: "24h 成交量", style: {color: "#777", "font-weight": "bold"}},
+			showEmpty: false,
+			top: "80%",
+			height: "20%",
+			offset: 2,
+			lineWidth: 1,
+			opposite: false
+		}],
+		series: [{
+			name: "市值",
+			color: "#7cb5ec",
+			tooltip: {pointFormatter: tooltip_format_market_cap2},
+			data: seriesData["market_cap_by_available_supply"],
+			visible: true,
+			dataGrouping: {enabled: false}
+		}, {
+			name: "价格",
+			yAxis: 1,
+			color: "#009933",
+			<!--tooltip: {pointFormatter: tooltip_format_fiat2},-->
+			data: seriesData["price_usd"],
+			visible: true,
+			dataGrouping: {enabled: false}
+		}, {
+			name: "BTC价格",
+			color: "#f7931a",
+			yAxis: 2,
+			<!--tooltip: {pointFormatter: tooltip_format_crypto2},-->
+			data: seriesData["price_btc"],
+			visible: false,
+			dataGrouping: {enabled: false}
+		}, {
+			type: "column",
+			name: "24h 成交量",
+			color: "#777",
+			yAxis: 3,
+            <!--tooltip: { pointFormatter: tooltip_format_vol},-->
+			data: seriesData["vol_usd"],
+			visible: true,
+			dataGrouping: {approximation: "average", enabled: false}
+		}],
+		plotOptions: {
+			series: {
+				events: {
+					legendItemClick: function (event) {
+						var index = event.target.index;
+						save_preferences(that.chartName, index, this.chart)
+					}
+				}
+			}
+		},
+	});
+
+}
+
+
+
+
+</script>
+</body>
+</html>
