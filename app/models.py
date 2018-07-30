@@ -111,29 +111,29 @@ class HistoryData(Base):
     # import sqlalchemy.dialects.mysql.JSON
     # length = (2 ** 32) - 1
     data = db.Column(db.Text(4294000000))
-    coin = db.Column(db.String(20))
+    coin = db.Column(db.String(120))
     # step secs
     step = db.Column(db.Integer)
-    type = db.Column(db.String(20))
+    type = db.Column(db.String(120))
 
 
 class CoinInfo(Base):
-    coin = db.Column(db.String(20), unique=True)
-    h24 = db.Column(db.String(20))
-    l24 = db.Column(db.String(20))
-    percentage = db.Column(db.String(20))
-    flowRate = db.Column(db.String(20))
-    turnoverRate = db.Column(db.String(20))
+    coin = db.Column(db.String(120), unique=True)
+    h24 = db.Column(db.String(120))
+    l24 = db.Column(db.String(120))
+    percentage = db.Column(db.String(120))
+    flowRate = db.Column(db.String(120))
+    turnoverRate = db.Column(db.String(120))
     info = db.Column(db.Text(4294000000))
 
 
 class ExchangeInfo(Base):
     code = db.Column(db.String(80), unique=True)
     h24Volume = db.Column(db.String(40))
-    marketNum = db.Column(db.String(20))
+    marketNum = db.Column(db.String(120))
     country = db.Column(db.String(40))
     icon = db.Column(db.String(200))
-    tradeTypes = db.Column(db.String(20))
+    tradeTypes = db.Column(db.String(120))
     name = db.Column(db.String(30))
     homeLink = db.Column(db.String(80))
     description = db.Column(db.Text(4294000000))
